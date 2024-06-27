@@ -410,19 +410,20 @@ class Processing {
   /// dataList  -> The order in which the data should be entered.
   ///              ['Name of column to enter data_1' : {'Specific data group_1', 'Data to be entered_1', 'Specific data group_2', 'Data to be entered_2'},
   ///               'Name of column to enter data_2' : {'Specific data group_1', 'Data to be entered_1', 'Specific data group_2', 'Data to be entered_2'}]
-  void separateData({required String check, required Map<String, Set<String>> dataList}) {
+  void separateData({required String check, required Map<String, List<String>> dataList}) {
     for (int col = 0; col < _file.maxCol; col++) {
       if (_file.getCell(index: '${getColumnAlphabet(col)}1') == check) {
         for (var map in dataList.entries) {
           for (int cols = 0; cols < _file.maxCol; cols++) {
             if (map.key == _file.getCell(index: '${getColumnAlphabet(cols)}1')) {
-              var list = map.value.toList();
-              int len = (list.length % 2 == 0) ? list.length : list.length - 1;
+              int len = (map.value.length % 2 == 0) ? map.value.length : map.value.length - 1;
+
               for (int row = 2; row <= _file.maxRow; row++) {
                 for (int i = 0; i < len; i += 2) {
-                  if (_file.getCell(index: getColumnAlphabet(col) + row.toString()) == list[i]) {
+                  if (_file.getCell(index: getColumnAlphabet(col) + row.toString()) ==
+                      map.value[i]) {
                     _file.setCell(
-                        index: getColumnAlphabet(cols) + row.toString(), value: list[i + 1]);
+                        index: getColumnAlphabet(cols) + row.toString(), value: map.value[i + 1]);
                   }
                 }
               }
@@ -582,5 +583,65 @@ class Processing {
       print('Not Exist');
       yield '';
     }
+  }
+}
+
+/// A collection of several additional useful functions.
+class Additional {
+  /// Default save path is D:\\Dart\\altium_library_config\\Info\\temp.txt
+  static const String saveAs = 'D:\\Dart\\altium_library_config\\Info\\temp.txt';
+
+  /// The default path of TI packaging data is D:\\Dart\\altium_library_config\\Info\\packageDataOfTI.txt
+  static const String tI = 'D:\\Dart\\altium_library_config\\Info\\packageDataOfTI.txt';
+
+  /// Extracting the TI products packaging information using datasheet.
+  void packageDataOfTI({String file = tI, String saveAs = saveAs}) {
+    List<String> lines = File(file).readAsLinesSync();
+    File(saveAs).writeAsStringSync('', flush: true);
+
+    // Column 1
+    File(saveAs).writeAsStringSync("'Package Type': [\n", mode: FileMode.append);
+    for (String line in lines) {
+      String text = "'${line.split(' ')[0]}','${line.split(' ')[2]}',\n";
+      File(saveAs).writeAsStringSync(text, mode: FileMode.append);
+    }
+    File(saveAs).writeAsStringSync('],\n', mode: FileMode.append);
+
+    // Column 2
+    File(saveAs).writeAsStringSync("'Package Drawing': [\n", mode: FileMode.append);
+    for (String line in lines) {
+      String text = "'${line.split(' ')[0]}','${line.split(' ')[3]}',\n";
+      File(saveAs).writeAsStringSync(text, mode: FileMode.append);
+    }
+    File(saveAs).writeAsStringSync('],\n', mode: FileMode.append);
+
+    // Column 3
+    File(saveAs).writeAsStringSync("'Lead finish/ Ball material': [\n", mode: FileMode.append);
+    for (String line in lines) {
+      String text =
+          line.split(' Level-1-260C-UNLIM')[0]; // Level-1-260C-UNLIM | Level-2-260C-1 YEAR
+      text = "'${line.split(' ')[0]}','${text.split('RoHS & Green ')[1]}',\n";
+      File(saveAs).writeAsStringSync(text, mode: FileMode.append);
+    }
+    File(saveAs).writeAsStringSync('],', mode: FileMode.append);
+
+    print('Packaging Data Extracted');
+  }
+
+  /// Extracting titles in given excel file.
+  void extractTitle({
+    required String file,
+    String saveAs = saveAs,
+    String listName = 'columnOrder',
+    bool flush = true,
+  }) {
+    var excel = LowLevel.open(fileName: file);
+    File(saveAs).writeAsStringSync('List<String> $listName = [\n', flush: flush);
+    for (int col = 0; col < excel.maxCol; col++) {
+      File(saveAs).writeAsStringSync("'${excel.getCell(index: '${getColumnAlphabet(col)}1')}',\n",
+          mode: FileMode.append);
+    }
+    File(saveAs).writeAsStringSync('];', mode: FileMode.append);
+    print('${excel.maxCol} Titles are extracted.');
   }
 }

@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'content.dart';
+import 'package:path/path.dart';
 
 /// The order in which the columns should be in the new Excel file to be created.
 /// Ensure that the data for all the columns below is extracted from the Excel file. Otherwise, if the remove() function is called, all the data may be deleted.
@@ -15,34 +16,29 @@ List<String> columnOrder = [
   'Manufacturer Part Number=Mfr Part #',
   'Supplier 1==Digi-Key',
   'Supplier Part Number 1=DK Part #',
+  'Category==Capasitors',
   'Series==TANTAMOUNT®, 593D',
   'Capacitance',
   'Tolerance',
   'Voltage - Rated',
   'ESR (Equivalent Series Resistance)',
-  'Lifetime @ Temp.',
-  // 'Temperature Coefficient',
   'Operating Temperature',
   'Type',
   'Manufacturer Size Code',
-  // 'Maximum Overload Voltage==100V',
   'Package / Case',
   'Size / Dimension',
   'Height - Seated (Max)',
   'Comment',
   'Description',
-  'Green Certificate1==RoHS Compliant',
-  'Green Certificate2==lead-free',
-  'Green Certificate3==Halogen Free',
+  'Ratings==-',
+  'Eco Plan==RoHS & Green',
   'Datasheet==https://www.vishay.com/docs/40005/593d.pdf',
-  'Library Path==D:\\Altium\\Altium_Component_Database\\Source_Files\\Symbols.SchLib',
+  'Library Path==Library Path',
   'Library Ref==Fix_Polarized_Capacitor',
-  'Footprint Path==D:\\Altium\\Altium_Component_Database\\Source_Files\\Footprints.PcbLib',
-  'Footprint Path 2==D:\\Altium\\Altium_Component_Database\\Source_Files\\Footprints.PcbLib',
-  'Footprint Path 3==D:\\Altium\\Altium_Component_Database\\Source_Files\\Footprints.PcbLib',
+  'Footprint Path==Footprint Path A',
+  'Footprint Path 2==Footprint Path B',
   'Footprint Ref',
-  'Footprint Ref 2',
-  'Footprint Ref 3'
+  'Footprint Ref 2'
 ];
 
 /// The order in which all components should be aligned.
@@ -68,8 +64,8 @@ List<String> descriptions = [
 List<String> comments = ['Capacitance'];
 
 /// By checking the given column, according to the data groups in that column, the order in which the data should be entered in the other columns given to it.
-Map<String, Set<String>> splitOrder = {
-  'Footprint Ref': {
+Map<String, List<String>> splitOrder = {
+  'Footprint Ref': [
     'A',
     'VISHAY_TANTAMOUNT-293D/593D/TR3_A_N',
     'B',
@@ -80,8 +76,8 @@ Map<String, Set<String>> splitOrder = {
     'VISHAY_TANTAMOUNT-293D/593D/TR3_D_N',
     'E',
     'VISHAY_TANTAMOUNT-293D/593D/TR3_E_N',
-  },
-  'Footprint Ref 2': {
+  ],
+  'Footprint Ref 2': [
     'A',
     'VISHAY_TANTAMOUNT-293D/593D/TR3_A_L',
     'B',
@@ -92,8 +88,8 @@ Map<String, Set<String>> splitOrder = {
     'VISHAY_TANTAMOUNT-293D/593D/TR3_D_L',
     'E',
     'VISHAY_TANTAMOUNT-293D/593D/TR3_E_L',
-  },
-  'Footprint Ref 3': {
+  ],
+  'Footprint Ref 3': [
     'A',
     'VISHAY_TANTAMOUNT-293D/593D/TR3_A_M',
     'B',
@@ -104,7 +100,7 @@ Map<String, Set<String>> splitOrder = {
     'VISHAY_TANTAMOUNT-293D/593D/TR3_D_M',
     'E',
     'VISHAY_TANTAMOUNT-293D/593D/TR3_E_M',
-  },
+  ],
 };
 
 /// Names of columns where a word needs to be replaced by another word.
@@ -117,47 +113,107 @@ List<String> remove = ['Capacitance'];
 /// 2. If values like 10.1Ohm, 11.7KOhm are present in the given column and need to be converted to 10.1Ω, 11.7KΩ respectively, provide the current value and the value it should be changed to in the notation variable. The notation array will be as follows: -> ['Ohm', 'Ω', 'KOhm', 'KΩ']
 List<String> prefixOrder = ['µF', ' uF'];
 
-// TODO: D folder contains Excel files that need to be edited and the data is saved to the Output folder after editing. For ease of understanding the code later, there are several Excel files for editing in the D folder. So, run the program and see how it works.
+// TODO: RawData folder contains Excel files that need to be edited and the data is saved to the Output folder after editing. For ease of understanding the code later, there are several Excel files for editing in the RawData folder. So, run the program and see how it works.
 
 void main() {
   // Use the terminal to run the program
   // Terminal command -> dart bin\altium_library_config.dart
-  // File directory   -> D:\\Dart\\Altium Database Library\\altium_library_config\\D\\
 
-  print('Enter the File Directory\n'
-      'Note : Only .xlsx files can be in the directory. If there are other files, an error will occur.\n'
-      'Note : Make sure that no file in the directory is currently open. Otherwise an error will occur\n'
-      'Note : Make sure to choose the right path. Otherwise error is generated.');
-  try {
-    // Check user given directory and get all filenames in given directory.
-    var files = Processing().getFiles(path: stdin.readLineSync()!).toList();
-    Processing()
-      // Merge multiple excel files and sort them as needed.
-      // NOTE: When sorting data in ascending order, if the column contains special characters (e.g., µ, Á, ð, ñ), using a REGEX filter may cause errors. Therefore, these special characters must first be converted into simpler characters. For example, µ = u, Á = A. This can be done by setting the value of the prefixes variable to true in the sheetsConfig function and then using the prefixes function. After sorting the column in ascending order, the indexRemove function can be used to retrieve the special characters that were previously converted to simpler characters.
-      ..sheetsConfig(
-          titleBar: columnOrder,
-          files: files,
-          sequence: sequence,
-          prefixes: true,
-          column: 'Capacitance',
-          swap: ' uF',
-          notaion: prefixOrder)
-      // Checking the given column and entering the data in other given columns according to the categories of data in that column.
-      ..separateData(check: 'Manufacturer Size Code', dataList: splitOrder)
-      // Checks all the rows in a given column and replaces any word in them with another word.
-      ..indexRemove(dataList: remove, find: 'uF', replace: 'µF')
-      // Generating a description for components.
-      ..description(details: descriptions)
-      // Generating a comments for components.
-      ..description(details: comments, index: 'Comment')
-      // Removing multiple columns with the same component and removing columns with empty cells.
-      ..remove()
-      // Save the file.
-      ..save(name: 'test_VISHAY_593D');
-    print('Well Done.... Program is Completed');
-  } catch (e) {
-    print("Something's wrong");
-    print(e);
-    exit(255);
+  String directory = 'D:\\Dart\\altium_library_config\\RawData\\';
+  print('Do you want to change the default file directory path? (Yes or No)');
+  if (stdin.readLineSync() == 'Yes') {
+    print(
+        'Attention Please ⚠️: Please ensure the directory contains only .xlsx files, no files are currently open, and the correct file path is selected. Non-compliance with these conditions will result in an error.\n'
+        'Enter the File Directory\n');
+    directory = stdin.readLineSync()!;
+  } else {
+    print('Ok, We will continue to use the default file directory');
   }
+
+  /// This function takes given Excel files and arranges them in the given order.
+  marge() {
+    try {
+      final Stopwatch stopwatch = Stopwatch()..start();
+      // Check user given directory and get all filenames in given directory.
+      var files = Processing().getFiles(path: directory).toList();
+      Processing()
+        ..sheetsConfig(
+            titleBar: columnOrder,
+            files: files,
+            sequence: sequence,
+            prefixes: true,
+            column: 'Capacitance',
+            swap: ' uF',
+            notaion: prefixOrder)
+        // Checking the given column and entering the data in other given columns according to the categories of data in that column.
+        ..separateData(check: 'Manufacturer Size Code', dataList: splitOrder)
+        // Checks all the rows in a given column and replaces any word in them with another word.
+        ..indexRemove(dataList: remove, find: 'uF', replace: 'µF')
+        // Generating a description for components.
+        ..description(details: descriptions)
+        // Generating a comments for components.
+        ..description(details: comments, index: 'Comment')
+        // Removing multiple columns with the same component and removing columns with empty cells.
+        ..remove()
+        // Save the file.
+        ..save(name: 'test_VISHAY_593D');
+      stopwatch.stop();
+      print('Elapsed time: ${(stopwatch.elapsedMilliseconds) / 1000} S');
+      Process.runSync('powershell', ['-c', '[console]::beep(1000, 1000)']);
+      print('Well Done.... Program is Completed');
+    } catch (e) {
+      print("Something's wrong");
+      print(e);
+      exit(255);
+    }
+  }
+
+  /// This function arranges the Excel files that are to be arranged in the same order at the same time according to the given order.
+  /// For example, if a column with the same value should be added to the pre-prepared Excel sheets with the same sequence (new column => 'Ratings==AEC-Q200'), it can be done by this function.
+  simultaneous() {
+    try {
+      final Stopwatch stopwatch = Stopwatch()..start();
+      // Check user given directory and get all filenames in given directory.
+      var files = Processing().getFiles(path: directory).toList();
+      for (var f in files) {
+        Processing()
+          ..sheetsConfig(
+              titleBar: columnOrder,
+              files: f.split(' '),
+              sequence: sequence,
+              prefixes: false,
+              column: 'Capacitance',
+              swap: 'uF',
+              notaion: prefixOrder)
+          // Checking the given column and entering the data in other given columns according to the categories of data in that column.
+          ..separateData(check: 'Manufacturer Size Code', dataList: splitOrder)
+          // Checks all the rows in a given column and replaces any word in them with another word.
+          ..indexRemove(dataList: remove, find: 'uF', replace: 'µF')
+          // Generating a description for components.
+          ..description(details: descriptions)
+          // Generating a comments for components.
+          ..description(details: comments, index: 'Comment')
+          // Removing multiple columns with the same component and removing columns with empty cells.
+          ..remove()
+          // Save the file.
+          ..save(name: basename(f).split('.xlsx')[0]);
+        print('${basename(f)} is Completed');
+      }
+      stopwatch.stop();
+      print('Elapsed time: ${(stopwatch.elapsedMilliseconds) / 1000} S');
+      Process.runSync('powershell', ['-c', '[console]::beep(1000, 1000)']);
+      print('Well Done.... Program is Completed');
+    } catch (e) {
+      print("Something's wrong");
+      print(e);
+      exit(255);
+    }
+  }
+
+  marge();
+
+  //  simultaneous();
+
+  //  Additional().packageDataOfTI();
+  //  Additional().extractTitle(file: 'D:\\Dart\\altium_library_config\\RawData\\fileName.xlsx'); //  Replace fileName with the name of the required file
 }
